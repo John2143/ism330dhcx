@@ -1,5 +1,7 @@
 use core::fmt;
 
+use embedded_hal_async::i2c::I2c;
+
 use crate::Register;
 
 /// The CTRL1_XL register. Accelerometer control register 1 (r/w).
@@ -120,17 +122,17 @@ impl Ctrl1Xl {
         }
     }
 
-    pub fn set_accelerometer_data_rate<I2C>(
+    pub async fn set_accelerometer_data_rate<I2C>(
         &mut self,
         i2c: &mut I2C,
         value: Odr_Xl,
     ) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(ODR_XL_MASK << ODR_XL_OFFSET);
         self.value |= (value as u8) << ODR_XL_OFFSET;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn chain_full_scale(&self) -> Fs_Xl {
@@ -143,29 +145,29 @@ impl Ctrl1Xl {
         }
     }
 
-    pub fn set_chain_full_scale<I2C>(
+    pub async fn set_chain_full_scale<I2C>(
         &mut self,
         i2c: &mut I2C,
         value: Fs_Xl,
     ) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(FS_MASK << FS_OFFSET);
         self.value |= (value as u8) << FS_OFFSET;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn lpf2_xl_en(&mut self) -> bool {
         self.value & (1 << LPF2_XL_EN) != 0
     }
 
-    pub fn set_lpf2_xl_en<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_lpf2_xl_en<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << LPF2_XL_EN);
         self.value |= (value as u8) << LPF2_XL_EN;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 }

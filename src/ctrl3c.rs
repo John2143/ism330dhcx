@@ -1,5 +1,7 @@
 use core::fmt;
 
+use embedded_hal_async::i2c::I2c;
+
 use crate::Register;
 
 /// The CTRL3_C register.
@@ -97,46 +99,46 @@ impl Ctrl3C {
         self.value & (1 << BOOT) != 0
     }
 
-    pub fn set_boot<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_boot<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << BOOT);
         self.value |= u8::from(value) << BOOT;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn bdu(&mut self) -> bool {
         self.value & (1 << BDU) != 0
     }
 
-    pub fn set_bdu<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_bdu<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << BDU);
         self.value |= (value as u8) << BDU;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
-    pub fn sw_reset<I2C>(&mut self, i2c: &mut I2C) -> Result<(), I2C::Error>
+    pub async fn sw_reset<I2C>(&mut self, i2c: &mut I2C) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value |= 1 << SW_RESET;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn if_inc(&mut self) -> bool {
         self.value & (1 << IF_INC) != 0
     }
 
-    pub fn set_if_inc<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_if_inc<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << IF_INC);
         self.value |= (value as u8) << IF_INC;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 }

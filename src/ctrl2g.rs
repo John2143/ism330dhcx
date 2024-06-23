@@ -1,4 +1,5 @@
 use core::fmt;
+use embedded_hal_async::i2c::I2c;
 
 use crate::Register;
 
@@ -125,17 +126,17 @@ impl Ctrl2G {
         }
     }
 
-    pub fn set_gyroscope_data_rate<I2C>(
+    pub async fn set_gyroscope_data_rate<I2C>(
         &mut self,
         i2c: &mut I2C,
         value: Odr,
     ) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(ODR_MASK << ODR_OFFSET);
         self.value |= (value as u8) << ODR_OFFSET;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn chain_full_scale(&self) -> Fs {
@@ -156,9 +157,9 @@ impl Ctrl2G {
         }
     }
 
-    pub fn set_chain_full_scale<I2C>(&mut self, i2c: &mut I2C, value: Fs) -> Result<(), I2C::Error>
+    pub async fn set_chain_full_scale<I2C>(&mut self, i2c: &mut I2C, value: Fs) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= 0b1111_0000;
 
@@ -170,6 +171,6 @@ impl Ctrl2G {
             self.value |= (value as u8) << FS_OFFSET;
         }
 
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 }

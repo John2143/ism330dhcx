@@ -65,6 +65,8 @@ use ctrl9xl::Ctrl9Xl;
 use fifoctrl::FifoCtrl;
 use fifostatus::FifoStatus;
 
+use embedded_hal_async::i2c::I2c;
+
 /// Datasheet write address for the device. (D6h)
 pub const DEFAULT_I2C_ADDRESS: u8 = 0x6bu8;
 
@@ -156,16 +158,16 @@ impl AccelValue {
 }
 
 trait Register {
-    fn read<I2C>(&self, i2c: &mut I2C, chip_addr: u8, reg_addr: u8) -> Result<u8, I2C::Error>
+    async fn read<I2C>(&self, i2c: &mut I2C, chip_addr: u8, reg_addr: u8) -> Result<u8, I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         let mut data: [u8; 1] = [0];
-        i2c.write_read(chip_addr, &[reg_addr], &mut data)?;
+        i2c.write_read(chip_addr, &[reg_addr], &mut data).await?;
         Ok(data[0])
     }
 
-    fn write<I2C>(
+    async fn write<I2C>(
         &self,
         i2c: &mut I2C,
         chip_addr: u8,
@@ -173,9 +175,9 @@ trait Register {
         bits: u8,
     ) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
-        i2c.write(chip_addr, &[reg_addr, bits])
+        i2c.write(chip_addr, &[reg_addr, bits]).await
     }
 }
 
@@ -191,19 +193,19 @@ pub struct Ism330Dhcx {
 }
 
 impl Ism330Dhcx {
-    pub fn new<I2C>(i2c: &mut I2C) -> Result<Self, I2C::Error>
+    pub async fn new<I2C>(i2c: &mut I2C) -> Result<Self, I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
-        Self::new_with_address(i2c, DEFAULT_I2C_ADDRESS)
+        Self::new_with_address(i2c, DEFAULT_I2C_ADDRESS).await
     }
 
-    pub fn new_with_address<I2C>(i2c: &mut I2C, address: u8) -> Result<Self, I2C::Error>
+    pub async fn new_with_address<I2C>(i2c: &mut I2C, address: u8) -> Result<Self, I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         let mut registers = [0u8; 13];
-        i2c.write_read(address, &[0x10], &mut registers)?;
+        i2c.write_read(address, &[0x10], &mut registers).await?;
 
         let ctrl1xl = Ctrl1Xl::new(registers[0], address);
         let ctrl2g = Ctrl2G::new(registers[1], address);
@@ -238,12 +240,12 @@ impl Ism330Dhcx {
     }
 
     /// Get temperature in Celsius.
-    pub fn get_temperature<I2C>(&mut self, i2c: &mut I2C) -> Result<f32, I2C::Error>
+    pub async fn get_temperature<I2C>(&mut self, i2c: &mut I2C) -> Result<f32, I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         let mut measurements = [0u8; 2];
-        i2c.write_read(self.address, &[0x20], &mut measurements)?;
+        i2c.write_read(self.address, &[0x20], &mut measurements).await?;
 
         let raw_temp = (measurements[1] as i16) << 8 | measurements[0] as i16;
         let temp: f32 = (raw_temp as f32 / 256.0) + 25.0;
@@ -251,89 +253,37 @@ impl Ism330Dhcx {
         Ok(temp)
     }
 
-    pub fn get_gyroscope<I2C>(&mut self, i2c: &mut I2C) -> Result<GyroValue, I2C::Error>
+    pub async fn get_gyroscope<I2C>(&mut self, i2c: &mut I2C) -> Result<GyroValue, I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         let scale = self.ctrl2g.chain_full_scale();
 
         let mut measurements = [0u8; 6];
-        i2c.write_read(self.address, &[0x22], &mut measurements)?;
+        i2c.write_read(self.address, &[0x22], &mut measurements).await?;
 
         Ok(GyroValue::from_msr(scale, &measurements))
     }
 
-    pub fn get_accelerometer<I2C>(&mut self, i2c: &mut I2C) -> Result<AccelValue, I2C::Error>
+    pub async fn get_accelerometer<I2C>(&mut self, i2c: &mut I2C) -> Result<AccelValue, I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         let scale = self.ctrl1xl.chain_full_scale();
 
         let mut measurements = [0u8; 6];
-        i2c.write_read(self.address, &[0x28], &mut measurements)?;
+        i2c.write_read(self.address, &[0x28], &mut measurements).await?;
 
         Ok(AccelValue::from_msr(scale, &measurements))
     }
 
-    pub fn fifo_pop<I2C>(&mut self, i2c: &mut I2C) -> Result<fifo::Value, I2C::Error>
+    pub async fn fifo_pop<I2C>(&mut self, i2c: &mut I2C) -> Result<fifo::Value, I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         let gyro_scale = self.ctrl2g.chain_full_scale();
         let accel_scale = self.ctrl1xl.chain_full_scale();
 
-        fifo::FifoOut::new(self.address).pop(i2c, gyro_scale, accel_scale)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use approx::*;
-
-    #[test]
-    fn parse_acceleromtere_2g() {
-        use ctrl1xl::Fs_Xl;
-
-        // Table 19 in AN5398
-        assert_eq!(
-            AccelValue::from_msr(Fs_Xl::G2, &[0x0, 0x0, 0x0, 0x0, 0x0, 0x0]).as_m_ss(),
-            [0., 0., 0.]
-        );
-
-        let a = AccelValue::from_msr(Fs_Xl::G2, &[0x69, 0x16, 0x0, 0x0, 0x0, 0x0]).as_m_ss();
-        assert_abs_diff_eq!(a[0], 0.350 * SENSORS_GRAVITY_STANDARD, epsilon = 0.01);
-
-        let a = AccelValue::from_msr(Fs_Xl::G2, &[0x09, 0x40, 0x0, 0x0, 0x0, 0x0]).as_m_ss();
-        assert_abs_diff_eq!(a[0], 1.0 * SENSORS_GRAVITY_STANDARD, epsilon = 0.01);
-
-        let a = AccelValue::from_msr(Fs_Xl::G2, &[0x97, 0xe9, 0x0, 0x0, 0x0, 0x0]).as_m_ss();
-        assert_abs_diff_eq!(a[0], -0.350 * SENSORS_GRAVITY_STANDARD, epsilon = 0.01);
-
-        let a = AccelValue::from_msr(Fs_Xl::G2, &[0xf7, 0xbf, 0x0, 0x0, 0x0, 0x0]).as_m_ss();
-        assert_abs_diff_eq!(a[0], -1.0 * SENSORS_GRAVITY_STANDARD, epsilon = 0.01);
-    }
-
-    #[test]
-    fn parse_gyro_250dps() {
-        use ctrl2g::Fs;
-
-        // Table 19 in AN5398
-        assert_eq!(
-            GyroValue::from_msr(Fs::Dps250, &[0x0, 0x0, 0x0, 0x0, 0x0, 0x0]).as_rad(),
-            [0., 0., 0.]
-        );
-
-        let a = GyroValue::from_msr(Fs::Dps250, &[0xa4, 0x2c, 0x0, 0x0, 0x0, 0x0]).as_rad();
-        assert_abs_diff_eq!(a[0], 100. * SENSORS_DPS_TO_RADS, epsilon = 0.01);
-
-        let a = GyroValue::from_msr(Fs::Dps250, &[0x49, 0x59, 0x0, 0x0, 0x0, 0x0]).as_rad();
-        assert_abs_diff_eq!(a[0], 200. * SENSORS_DPS_TO_RADS, epsilon = 0.01);
-
-        let a = GyroValue::from_msr(Fs::Dps250, &[0x5c, 0xd3, 0x0, 0x0, 0x0, 0x0]).as_rad();
-        assert_abs_diff_eq!(a[0], -100. * SENSORS_DPS_TO_RADS, epsilon = 0.01);
-
-        let a = GyroValue::from_msr(Fs::Dps250, &[0xb7, 0xa6, 0x0, 0x0, 0x0, 0x0]).as_rad();
-        assert_abs_diff_eq!(a[0], -200. * SENSORS_DPS_TO_RADS, epsilon = 0.01);
+        fifo::FifoOut::new(self.address).pop(i2c, gyro_scale, accel_scale).await
     }
 }

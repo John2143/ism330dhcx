@@ -1,4 +1,5 @@
 use core::fmt;
+use embedded_hal_async::i2c::I2c;
 
 use crate::Register;
 
@@ -90,90 +91,90 @@ impl Ctrl9Xl {
         self.value & (1 << DEN_X) != 0
     }
 
-    pub fn set_den_x<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_den_x<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << DEN_X);
         self.value |= (value as u8) << DEN_X;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn den_y(&mut self) -> bool {
         self.value & (1 << DEN_Y) != 0
     }
 
-    pub fn set_den_y<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_den_y<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << DEN_Y);
         self.value |= (value as u8) << DEN_Y;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn den_z(&mut self) -> bool {
         self.value & (1 << DEN_Z) != 0
     }
 
-    pub fn set_den_z<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_den_z<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << DEN_Z);
         self.value |= (value as u8) << DEN_Z;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn den_xl_g(&mut self) -> bool {
         self.value & (1 << DEN_XL_G) != 0
     }
 
-    pub fn set_den_xl_g<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_den_xl_g<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << DEN_XL_G);
         self.value |= (value as u8) << DEN_XL_G;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn den_xl_en(&mut self) -> bool {
         self.value & (1 << DEN_XL_EN) != 0
     }
 
-    pub fn set_den_xl_en<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_den_xl_en<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << DEN_XL_EN);
         self.value |= (value as u8) << DEN_XL_EN;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn den_lh(&mut self) -> bool {
         self.value & (1 << DEN_LH) != 0
     }
 
-    pub fn set_den_lh<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_den_lh<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << DEN_LH);
         self.value |= (value as u8) << DEN_LH;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 
     pub fn device_conf(&mut self) -> bool {
         self.value & (1 << DEVICE_CONF) != 0
     }
 
-    pub fn set_device_conf<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
+    pub async fn set_device_conf<I2C>(&mut self, i2c: &mut I2C, value: bool) -> Result<(), I2C::Error>
     where
-        I2C: embedded_hal::i2c::I2c,
+        I2C: I2c,
     {
         self.value &= !(1 << DEVICE_CONF);
         self.value |= (value as u8) << DEVICE_CONF;
-        self.write(i2c, self.address, ADDR, self.value)
+        self.write(i2c, self.address, ADDR, self.value).await
     }
 }
