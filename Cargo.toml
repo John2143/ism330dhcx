@@ -1,5 +1,8 @@
 [package]
-authors = ["Andrei Sousa <sousandrei@gmail.com>"]
+authors = [
+    "Andrei Sousa <sousandrei@gmail.com>",
+    "John Schmidt <john@john2143.com>",
+]
 categories = ["embedded", "hardware-support", "no-std"]
 description = "Simple driver for ST ism330dhcx sensor"
 documentation = "https://docs.rs/ism330dhcx"
@@ -11,6 +14,8 @@ keywords = [
     "ism330dhcx",
     "gyroscope",
     "accelerometer",
+    "async",
+    "embedded-hal-async",
 ]
 license = "MIT"
 name = "ism330dhcx"
@@ -22,6 +27,7 @@ version = "0.6.0"
 [dependencies]
 defmt = "0.3"
 embedded-hal = "1.0.0"
+embedded-hal-async = "1.0.0"
 embedded-io = "0.6.1"
 
 [dev-dependencies]
